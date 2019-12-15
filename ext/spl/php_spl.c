@@ -23,6 +23,7 @@
 #include "php_main.h"
 #include "ext/standard/info.h"
 #include "php_spl.h"
+#include "php_spl_arginfo.h"
 #include "spl_functions.h"
 #include "spl_engine.h"
 #include "spl_array.h"
@@ -92,8 +93,8 @@ PHP_FUNCTION(class_parents)
 	}
 
 	if (Z_TYPE_P(obj) != IS_OBJECT && Z_TYPE_P(obj) != IS_STRING) {
-		php_error_docref(NULL, E_WARNING, "object or string expected");
-		RETURN_FALSE;
+		zend_type_error("object or string expected");
+		return;
 	}
 
 	if (Z_TYPE_P(obj) == IS_STRING) {
@@ -125,8 +126,8 @@ PHP_FUNCTION(class_implements)
 		return;
 	}
 	if (Z_TYPE_P(obj) != IS_OBJECT && Z_TYPE_P(obj) != IS_STRING) {
-		php_error_docref(NULL, E_WARNING, "object or string expected");
-		RETURN_FALSE;
+		zend_type_error("object or string expected");
+		return;
 	}
 
 	if (Z_TYPE_P(obj) == IS_STRING) {
@@ -154,8 +155,8 @@ PHP_FUNCTION(class_uses)
 		return;
 	}
 	if (Z_TYPE_P(obj) != IS_OBJECT && Z_TYPE_P(obj) != IS_STRING) {
-		php_error_docref(NULL, E_WARNING, "object or string expected");
-		RETURN_FALSE;
+		zend_type_error("object or string expected");
+		return;
 	}
 
 	if (Z_TYPE_P(obj) == IS_STRING) {
@@ -510,7 +511,7 @@ PHP_FUNCTION(spl_autoload_register)
 	zend_object *obj_ptr;
 	zend_fcall_info_cache fcc;
 
-	if (zend_parse_parameters_ex(ZEND_PARSE_PARAMS_QUIET, ZEND_NUM_ARGS(), "|zbb", &zcallable, &do_throw, &prepend) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), "|zbb", &zcallable, &do_throw, &prepend) == FAILURE) {
 		return;
 	}
 
@@ -892,76 +893,6 @@ PHP_MINFO_FUNCTION(spl)
 }
 /* }}} */
 
-/* {{{ arginfo */
-ZEND_BEGIN_ARG_INFO_EX(arginfo_iterator_to_array, 0, 0, 1)
-	ZEND_ARG_OBJ_INFO(0, iterator, Traversable, 0)
-	ZEND_ARG_INFO(0, use_keys)
-ZEND_END_ARG_INFO();
-
-ZEND_BEGIN_ARG_INFO(arginfo_iterator, 0)
-	ZEND_ARG_OBJ_INFO(0, iterator, Traversable, 0)
-ZEND_END_ARG_INFO();
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_iterator_apply, 0, 0, 2)
-	ZEND_ARG_OBJ_INFO(0, iterator, Traversable, 0)
-	ZEND_ARG_INFO(0, function)
-	ZEND_ARG_ARRAY_INFO(0, args, 1)
-ZEND_END_ARG_INFO();
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_class_parents, 0, 0, 1)
-	ZEND_ARG_INFO(0, instance)
-	ZEND_ARG_INFO(0, autoload)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_class_implements, 0, 0, 1)
-	ZEND_ARG_INFO(0, what)
-	ZEND_ARG_INFO(0, autoload)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_class_uses, 0, 0, 1)
-	ZEND_ARG_INFO(0, what)
-	ZEND_ARG_INFO(0, autoload)
-ZEND_END_ARG_INFO()
-
-
-ZEND_BEGIN_ARG_INFO(arginfo_spl_classes, 0)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO(arginfo_spl_autoload_functions, 0)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_spl_autoload, 0, 0, 1)
-	ZEND_ARG_INFO(0, class_name)
-	ZEND_ARG_INFO(0, file_extensions)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_spl_autoload_extensions, 0, 0, 0)
-	ZEND_ARG_INFO(0, file_extensions)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_spl_autoload_call, 0, 0, 1)
-	ZEND_ARG_INFO(0, class_name)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_spl_autoload_register, 0, 0, 0)
-	ZEND_ARG_INFO(0, autoload_function)
-	ZEND_ARG_INFO(0, throw)
-	ZEND_ARG_INFO(0, prepend)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_spl_autoload_unregister, 0, 0, 1)
-	ZEND_ARG_INFO(0, autoload_function)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_spl_object_hash, 0, 0, 1)
-	ZEND_ARG_INFO(0, obj)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_spl_object_id, 0, 0, 1)
-	ZEND_ARG_INFO(0, obj)
-ZEND_END_ARG_INFO()
-/* }}} */
-
 /* {{{ spl_functions
  */
 static const zend_function_entry spl_functions[] = {
@@ -978,7 +909,7 @@ static const zend_function_entry spl_functions[] = {
 	PHP_FE(spl_object_hash,         arginfo_spl_object_hash)
 	PHP_FE(spl_object_id,           arginfo_spl_object_id)
 	PHP_FE(iterator_to_array,       arginfo_iterator_to_array)
-	PHP_FE(iterator_count,          arginfo_iterator)
+	PHP_FE(iterator_count,          arginfo_iterator_count)
 	PHP_FE(iterator_apply,          arginfo_iterator_apply)
 	PHP_FE_END
 };

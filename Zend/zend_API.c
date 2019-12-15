@@ -29,6 +29,7 @@
 #include "zend_exceptions.h"
 #include "zend_closures.h"
 #include "zend_inheritance.h"
+#include "zend_ini.h"
 
 #include <stdarg.h>
 
@@ -2381,6 +2382,12 @@ void module_destructor(zend_module_entry *module) /* {{{ */
 		module->module_shutdown_func(module->type, module->module_number);
 	}
 
+	if (module->module_started
+	 && !module->module_shutdown_func
+	 && module->type == MODULE_TEMPORARY) {
+		zend_unregister_ini_entries(module->module_number);
+	}
+
 	/* Deinitilaise module globals */
 	if (module->globals_size) {
 #ifdef ZTS
@@ -2574,6 +2581,7 @@ ZEND_API zend_class_entry *zend_register_internal_interface(zend_class_entry *or
 ZEND_API int zend_register_class_alias_ex(const char *name, size_t name_len, zend_class_entry *ce, int persistent) /* {{{ */
 {
 	zend_string *lcname;
+	zval zv, *ret;
 
 	/* TODO: Move this out of here in 7.4. */
 	if (persistent && EG(current_module) && EG(current_module)->type == MODULE_TEMPORARY) {
@@ -2591,9 +2599,11 @@ ZEND_API int zend_register_class_alias_ex(const char *name, size_t name_len, zen
 	zend_assert_valid_class_name(lcname);
 
 	lcname = zend_new_interned_string(lcname);
-	ce = zend_hash_add_ptr(CG(class_table), lcname, ce);
+
+	ZVAL_ALIAS_PTR(&zv, ce);
+	ret = zend_hash_add(CG(class_table), lcname, &zv);
 	zend_string_release_ex(lcname, 0);
-	if (ce) {
+	if (ret) {
 		if (!(ce->ce_flags & ZEND_ACC_IMMUTABLE)) {
 			ce->refcount++;
 		}
@@ -2933,11 +2943,13 @@ static zend_always_inline int zend_is_callable_check_func(int check_flags, zval 
 		     ((fcc->object && fcc->calling_scope->__call) ||
 		      (!fcc->object && fcc->calling_scope->__callstatic)))) {
 			scope = zend_get_executed_scope();
-			if (fcc->function_handler->common.scope != scope
-			 || !zend_check_protected(zend_get_function_root_class(fcc->function_handler), scope)) {
-				retval = 0;
-				fcc->function_handler = NULL;
-				goto get_function_via_handler;
+			if (fcc->function_handler->common.scope != scope) {
+				if ((fcc->function_handler->common.fn_flags & ZEND_ACC_PRIVATE)
+				 || !zend_check_protected(zend_get_function_root_class(fcc->function_handler), scope)) {
+					retval = 0;
+					fcc->function_handler = NULL;
+					goto get_function_via_handler;
+				}
 			}
 		}
 	} else {

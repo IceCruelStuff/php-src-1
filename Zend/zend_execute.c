@@ -1027,24 +1027,11 @@ static zend_never_inline zval* zend_assign_to_typed_prop(zend_property_info *inf
 	return zend_assign_to_variable(property_val, &tmp, IS_TMP_VAR, EX_USES_STRICT_TYPES());
 }
 
-
-static zend_always_inline zend_bool zend_check_type(
-		zend_type type, zval *arg, void **cache_slot, zend_class_entry *scope,
+static zend_always_inline zend_bool zend_check_type_slow(
+		zend_type type, zval *arg, zend_reference *ref, void **cache_slot, zend_class_entry *scope,
 		zend_bool is_return_type, zend_bool is_internal)
 {
-	zend_reference *ref = NULL;
 	uint32_t type_mask;
-	ZEND_ASSERT(ZEND_TYPE_IS_SET(type));
-
-	if (UNEXPECTED(Z_ISREF_P(arg))) {
-		ref = Z_REF_P(arg);
-		arg = Z_REFVAL_P(arg);
-	}
-
-	if (EXPECTED(ZEND_TYPE_CONTAINS_CODE(type, Z_TYPE_P(arg)))) {
-		return 1;
-	}
-
 	if (ZEND_TYPE_HAS_CLASS(type) && Z_TYPE_P(arg) == IS_OBJECT) {
 		zend_class_entry *ce;
 		if (ZEND_TYPE_HAS_LIST(type)) {
@@ -1107,6 +1094,25 @@ builtin_types:
 
 	/* Special handling for IS_VOID is not necessary (for return types),
 	 * because this case is already checked at compile-time. */
+}
+
+static zend_always_inline zend_bool zend_check_type(
+		zend_type type, zval *arg, void **cache_slot, zend_class_entry *scope,
+		zend_bool is_return_type, zend_bool is_internal)
+{
+	zend_reference *ref = NULL;
+	ZEND_ASSERT(ZEND_TYPE_IS_SET(type));
+
+	if (UNEXPECTED(Z_ISREF_P(arg))) {
+		ref = Z_REF_P(arg);
+		arg = Z_REFVAL_P(arg);
+	}
+
+	if (EXPECTED(ZEND_TYPE_CONTAINS_CODE(type, Z_TYPE_P(arg)))) {
+		return 1;
+	}
+
+	return zend_check_type_slow(type, arg, ref, cache_slot, scope, is_return_type, is_internal);
 }
 
 static zend_always_inline int zend_verify_recv_arg_type(zend_function *zf, uint32_t arg_num, zval *arg, void **cache_slot)
@@ -1295,15 +1301,6 @@ static int zend_verify_internal_return_type(zend_function *zf, zval *ret)
 	return 1;
 }
 #endif
-
-static zend_always_inline void zend_verify_return_type(zend_function *zf, zval *ret, void **cache_slot)
-{
-	zend_arg_info *ret_info = zf->common.arg_info - 1;
-
-	if (UNEXPECTED(!zend_check_type(ret_info->type, ret, cache_slot, NULL, 1, 0))) {
-		zend_verify_return_error(zf, cache_slot, ret);
-	}
-}
 
 static ZEND_COLD int zend_verify_missing_return_type(const zend_function *zf, void **cache_slot)
 {
@@ -3572,6 +3569,13 @@ ZEND_API zend_function * ZEND_FASTCALL zend_fetch_function_str(const char *name,
 		return fbc;
 	}
 	return NULL;
+} /* }}} */
+
+ZEND_API void ZEND_FASTCALL zend_init_func_run_time_cache(zend_op_array *op_array) /* {{{ */
+{
+	if (!RUN_TIME_CACHE(op_array)) {
+		init_func_run_time_cache_i(op_array);
+	}
 } /* }}} */
 
 static zend_always_inline void i_init_code_execute_data(zend_execute_data *execute_data, zend_op_array *op_array, zval *return_value) /* {{{ */

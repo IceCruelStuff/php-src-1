@@ -4098,15 +4098,15 @@ ZEND_VM_COLD_CONST_HANDLER(124, ZEND_VERIFY_RETURN_TYPE, CONST|TMP|VAR|UNUSED|CV
 {
 	USE_OPLINE
 
-	SAVE_OPLINE();
 	if (OP1_TYPE == IS_UNUSED) {
+		SAVE_OPLINE();
 		zend_verify_missing_return_type(EX(func), CACHE_ADDR(opline->op2.num));
+		HANDLE_EXCEPTION();
 	} else {
 /* prevents "undefined variable opline" errors */
 #if !ZEND_VM_SPEC || (OP1_TYPE != IS_UNUSED)
 		zval *retval_ref, *retval_ptr;
 		zend_arg_info *ret_info = EX(func)->common.arg_info - 1;
-
 		retval_ref = retval_ptr = GET_OP1_ZVAL_PTR(BP_VAR_R);
 
 		if (OP1_TYPE == IS_CONST) {
@@ -4121,24 +4121,35 @@ ZEND_VM_COLD_CONST_HANDLER(124, ZEND_VERIFY_RETURN_TYPE, CONST|TMP|VAR|UNUSED|CV
 			ZVAL_DEREF(retval_ptr);
 		}
 
-		if (UNEXPECTED((ZEND_TYPE_FULL_MASK(ret_info->type) & MAY_BE_ANY)
-			&& !ZEND_TYPE_CONTAINS_CODE(ret_info->type, Z_TYPE_P(retval_ptr))
-			&& !(EX(func)->op_array.fn_flags & ZEND_ACC_RETURN_REFERENCE)
-			&& retval_ref != retval_ptr)
-		) {
-			/* A cast might happen - unwrap the reference if this is a by-value return */
-			if (Z_REFCOUNT_P(retval_ref) == 1) {
-				ZVAL_UNREF(retval_ref);
-			} else {
-				Z_DELREF_P(retval_ref);
-				ZVAL_COPY(retval_ref, retval_ptr);
-			}
-			retval_ptr = retval_ref;
+		if (EXPECTED(ZEND_TYPE_CONTAINS_CODE(ret_info->type, Z_TYPE_P(retval_ptr)))) {
+			ZEND_VM_NEXT_OPCODE();
 		}
-		zend_verify_return_type(EX(func), retval_ptr, CACHE_ADDR(opline->op2.num));
+
+		zend_reference *ref = NULL;
+		void *cache_slot = CACHE_ADDR(opline->op2.num);
+		if (UNEXPECTED(retval_ref != retval_ptr)) {
+			if (UNEXPECTED(EX(func)->op_array.fn_flags & ZEND_ACC_RETURN_REFERENCE)) {
+				ref = Z_REF_P(retval_ref);
+			} else {
+				/* A cast might happen - unwrap the reference if this is a by-value return */
+				if (Z_REFCOUNT_P(retval_ref) == 1) {
+					ZVAL_UNREF(retval_ref);
+				} else {
+					Z_DELREF_P(retval_ref);
+					ZVAL_COPY(retval_ref, retval_ptr);
+				}
+				retval_ptr = retval_ref;
+			}
+		}
+
+		SAVE_OPLINE();
+		if (UNEXPECTED(!zend_check_type_slow(ret_info->type, retval_ptr, ref, cache_slot, NULL, 1, 0))) {
+			zend_verify_return_error(EX(func), cache_slot, retval_ptr);
+			HANDLE_EXCEPTION();
+		}
+		ZEND_VM_NEXT_OPCODE();
 #endif
 	}
-	ZEND_VM_NEXT_OPCODE_CHECK_EXCEPTION();
 }
 
 ZEND_VM_INLINE_HANDLER(62, ZEND_RETURN, CONST|TMP|VAR|CV, ANY)
@@ -7075,6 +7086,8 @@ ZEND_VM_HANDLER(145, ZEND_DECLARE_CLASS_DELAYED, CONST, CONST)
 				zend_error_noreturn(E_COMPILE_ERROR, "Cannot declare %s %s, because the name is already in use", zend_get_object_type(ce), ZSTR_VAL(ce->name));
 			} else {
 				if (zend_do_link_class(ce, Z_STR_P(RT_CONSTANT(opline, opline->op2))) == FAILURE) {
+					/* Reload bucket pointer, the hash table may have been reallocated */
+					zv = zend_hash_find(EG(class_table), Z_STR_P(lcname));
 					zend_hash_set_bucket_key(EG(class_table), (Bucket *) zv, Z_STR_P(lcname + 1));
 					HANDLE_EXCEPTION();
 				}
@@ -7095,12 +7108,16 @@ ZEND_VM_HANDLER(146, ZEND_DECLARE_ANON_CLASS, ANY, ANY, CACHE_SLOT)
 	if (UNEXPECTED(ce == NULL)) {
 		zend_string *rtd_key = Z_STR_P(RT_CONSTANT(opline, opline->op1));
 		zv = zend_hash_find_ex(EG(class_table), rtd_key, 1);
+		if (UNEXPECTED(zv == NULL)) {
+			SAVE_OPLINE();
+			ZEND_ASSERT(EX(func)->op_array.fn_flags & ZEND_ACC_PRELOADED);
+			zend_error_noreturn(E_ERROR, "Anonymous class wasn't preloaded");
+		}
 		ZEND_ASSERT(zv != NULL);
 		ce = Z_CE_P(zv);
 		if (!(ce->ce_flags & ZEND_ACC_LINKED)) {
 			SAVE_OPLINE();
 			if (zend_do_link_class(ce, (OP2_TYPE == IS_CONST) ? Z_STR_P(RT_CONSTANT(opline, opline->op2)) : NULL) == FAILURE) {
-				zend_hash_set_bucket_key(EG(class_table), (Bucket *) zv, rtd_key);
 				HANDLE_EXCEPTION();
 			}
 		}

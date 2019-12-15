@@ -273,10 +273,6 @@ function get_current_user(): string {}
 
 function get_cfg_var(string $option_name): string|array|false {}
 
-function get_magic_quotes_runtime(): bool {}
-
-function get_magic_quotes_gpc(): bool {}
-
 function error_log(string $message, int $message_type = 0, string $destination = UNKNOWN, string $extra_headers = UNKNOWN): bool {}
 
 function error_get_last(): ?array {}
@@ -384,10 +380,6 @@ function crc32(string $str): int {}
 /* crypt.c */
 
 function crypt(string $str, string $salt = UNKNOWN): string {}
-
-/* cyr_convert.c */
-
-function convert_cyr_string(string $str, string $from, string $to): string {}
 
 /* datetime.c */
 
@@ -515,7 +507,7 @@ function get_html_translation_table(int $table = HTML_SPECIALCHARS, int $quote_s
 /** @param mixed $assertion */
 function assert($assertion, $description = null): bool {}
 
-function assert_options(int $what, $value = UNKNOWN): array|int|string|bool|null {}
+function assert_options(int $what, $value = UNKNOWN): array|object|int|string|bool|null {}
 
 /* string.c */
 
@@ -543,11 +535,7 @@ function wordwrap(string $str, int $width = 75, string $break = "\n", bool $cut 
 
 function explode(string $separator, string $str, int $limit = PHP_INT_MAX): array {}
 
-/**
- * @param string $glue Optional - defaults to empty string
- * @param array $pieces
- */
-function implode($glue, $pieces = UNKNOWN): string {}
+function implode(string|array $glue, array $pieces = UNKNOWN): string {}
 
 function strtok(string $str, string $token = UNKNOWN): string|false {}
 
@@ -580,12 +568,11 @@ function chunk_split(string $str, int $chunklen = 76, string $ending = "\r\n"): 
 function substr(string $str, int $start, ?int $length = null): string|false {}
 
 /**
- * @param mixed $str
- * @param mixed $replace
  * @param mixed $start
  * @param mixed $length
  */
-function substr_replace($str, $replace, $start, $length = UNKNOWN): string|array|false {}
+function substr_replace(
+    string|array $str, string|array $replace, $start, $length = UNKNOWN): string|array|false {}
 
 function quotemeta(string $str): string {}
 
@@ -620,22 +607,20 @@ function stripslashes(string $str): string {}
 /**
  * @param string|array $search
  * @param string|array $replace
- * @param string|array $subject
  * @param int $replace_count
  */
-function str_replace($search, $replace, $subject, &$replace_count = UNKNOWN): string|array {}
+function str_replace(
+    $search, $replace, string|array $subject, &$replace_count = UNKNOWN): string|array {}
 
 /**
  * @param string|array $search
  * @param string|array $replace
- * @param string|array $subject
  * @param int $replace_count
  */
-function str_ireplace($search, $replace, $subject, &$replace_count = UNKNOWN): string|array {}
+function str_ireplace(
+    $search, $replace, string|array $subject, &$replace_count = UNKNOWN): string|array {}
 
 function hebrev(string $str, int $max_chars_per_line = 0): string {}
-
-function hebrevc(string $str, int $max_chars_per_line = 0): string {}
 
 function nl2br(string $str, bool $is_xhtml = true): string {}
 
@@ -673,10 +658,6 @@ function str_rot13(string $str): string {}
 function str_shuffle(string $str): string {}
 
 function str_word_count(string $str, int $format = 0, string $charlist = UNKNOWN): array|int {}
-
-#ifdef HAVE_STRFMON
-function money_format(string $format, float $value): string|false {}
-#endif
 
 function str_split(string $str, int $split_length = 1): array {}
 
@@ -742,6 +723,141 @@ function scandir(string $directory, int $sorting_order = 0, $context = UNKNOWN):
 #ifdef HAVE_GLOB
 function glob(string $pattern, int $flags = 0): array|false {}
 #endif
+
+/* exec.c */
+
+function exec(string $command, &$output = null, &$result_code = null): string|false {}
+
+function system(string $command, &$result_code = null): string|false {}
+
+function passthru(string $command, &$result_code = null): bool|null {}
+
+function escapeshellcmd(string $command): string {}
+
+function escapeshellarg(string $arg): string {}
+
+function shell_exec(string $command): string|false|null {}
+
+#ifdef HAVE_NICE
+function proc_nice(int $priority): bool {}
+#endif
+
+/* file.c */
+
+/** @param resource $handle */
+function flock($handle, int $operation, &$wouldblock = null): bool {}
+
+function get_meta_tags(string $filename, bool $use_include_path = false): array|false {}
+
+/** @param resource $handle */
+function pclose($handle): int {}
+
+/** @return resource|false */
+function popen(string $command, string $mode) {}
+
+/** @param resource|null $context */
+function readfile(string $filename, bool $use_include_path = false, $context = null): int|false {}
+
+/** @param resource $handle */
+function rewind($handle): bool {}
+
+/** @param resource|null $context */
+function rmdir(string $dirname, $context = null): bool {}
+
+function umask(int $mask = UNKNOWN): int {}
+
+/** @param resource $handle */
+function fclose($handle): bool {}
+
+/** @param resource $handle */
+function feof($handle): bool {}
+
+/** @param resource $handle */
+function fgetc($handle): string|false {}
+
+/** @param resource $handle */
+function fgets($handle, int $length = 1024): string|false {}
+
+/** @param resource $handle */
+function fread($handle, int $length): string|false {}
+
+/**
+ * @param resource|null $context
+ * @return resource|false
+ */
+function fopen(string $filename, string $mode, bool $use_include_path = false, $context = null) {}
+
+/**
+ * @param resource $stream
+ * @param mixed ...$args
+ */
+function fscanf($stream, string $format, &...$args): array|int|false|null {}
+
+/** @param resource $handle */
+function fpassthru($handle): int {}
+
+/** @param resource $handle */
+function ftruncate($handle, int $size): bool {}
+
+/** @param resource $handle */
+function fstat($handle): array|false {}
+
+/** @param resource $handle */
+function fseek($handle, int $offset, int $whence = SEEK_SET): int {}
+
+/** @param resource $handle */
+function ftell($handle): int|false {}
+
+/** @param resource $handle */
+function fflush($handle): bool {}
+
+/** @param resource $handle */
+function fwrite($handle, string $content, int $max_length = UNKNOWN): int|false {}
+
+/** @param resource|null $context */
+function mkdir(string $pathname, int $mode = 0777, bool $recursive = false, $context = null): bool {}
+
+/** @param resource|null $context */
+function rename(string $oldname, string $newname, $context = null): bool {}
+
+/** @param resource|null $context */
+function copy(string $source, string $dest, $context = null): bool {}
+
+function tempnam(string $dir, string $prefix): string|false {}
+
+/** @return resource|false */
+function tmpfile() {}
+
+/** @param resource|null $context */
+function file(string $filename, int $flags = 0, $context = null): array|false {}
+
+/** @param resource|null $context */
+function file_get_contents(string $filename, bool $use_include_path = false, $context = null, int $offset = 0, $maxlen = UNKNOWN): string|false {}
+
+/** @param resource|null $context */
+function unlink(string $filename, $context = null): bool {}
+
+/**
+ * @param mixed $content
+ * @param resource|null $context
+ */
+function file_put_contents(string $filename, $content, int $flags = 0, $context = null): int|false {}
+
+/** @param resource $handle */
+function fputcsv($handle, array $fields, string $delimiter = ",", string $enclosure = "\"", string $escape = "\\"): int|false {}
+
+/** @param resource $handle */
+function fgetcsv($handle, $length = UNKNOWN, string $delimiter = ",", string $enclosure = '"', string $escape = "\\"): array|false {}
+
+#if HAVE_REALPATH || defined(ZTS)
+function realpath(string $path): string|false {}
+#endif
+
+#ifdef HAVE_FNMATCH
+function fnmatch(string $pattern, string $filename, int $flags = 0): bool {}
+#endif
+
+function sys_get_temp_dir(): string {}
 
 /* filestat.c */
 
@@ -811,6 +927,54 @@ function realpath_cache_get(): array {}
 
 function realpath_cache_size(): int {}
 
+/* formatted_print.c */
+
+/** @param mixed ...$args */
+function sprintf(string $format, ...$args): string {}
+
+/** @param mixed ...$args */
+function printf(string $format, ...$args): int {}
+
+/** @param mixed $args */
+function vprintf(string $format, $args): int {}
+
+/** @param mixed $args */
+function vsprintf(string $format, $args): string {}
+
+/**
+ * @param resource $handle
+ * @param mixed ...$args
+ */
+function fprintf($handle, string $format, ...$args): int {}
+
+/**
+ * @param resource $handle
+ * @param mixed $args
+ */
+function vfprintf($handle, string $format, $args): int {}
+
+/* fsock.c */
+
+/** @return resource|false */
+function fsockopen(string $hostname, int $port = -1, &$errno = null, &$errstr = null, float $timeout = UNKNOWN) {}
+
+/** @return resource|false */
+function pfsockopen(string $hostname, int $port = -1, &$errno = null, &$errstr = null, float $timeout = UNKNOWN) {}
+
+/* http.c */
+
+function http_build_query(array|object $data, string $numeric_prefix = "", $arg_separator = UNKNOWN, int $enc_type = PHP_QUERY_RFC1738): string|false {}
+
+/* image.c */
+
+function image_type_to_mime_type(int $image_type): string {}
+
+function image_type_to_extension(int $image_type): string|false {}
+
+function getimagesize(string $image_path, &$image_info = null): array|false {}
+
+function getimagesizefromstring(string $image, &$image_info = null): array|false {}
+
 /* info.c */
 
 function phpinfo(int $what = INFO_ALL): bool {}
@@ -850,8 +1014,6 @@ function link(string $target, string $link): bool {}
 #endif
 
 /* mail.c */
-
-function ezmlm_hash(string $str): int {}
 
 /** @param string|array $additional_headers */
 function mail(string $to, string $subject, string $message, $additional_headers = UNKNOWN, string $additional_parameters = ""): bool {}
@@ -911,7 +1073,7 @@ function pow($base, $exp) {}
 
 function exp(float $number): float {}
 
-function log(float $number, float $base = M_E): float|false {}
+function log(float $number, float $base = M_E): float {}
 
 function log10(float $number): float {}
 
@@ -965,7 +1127,7 @@ function unpack(string $format, string $data, int $offset = 0): array|false {}
 
 function password_get_info(string $hash): ?array {}
 
-function password_hash(string $password, $algo, array $options = []): ?string {}
+function password_hash(string $password, $algo, array $options = []): string {}
 
 function password_needs_rehash(string $hash, $algo, array $options = []): bool {}
 
@@ -1008,3 +1170,156 @@ function mt_getrandmax(): int {}
 function random_bytes(int $length): string {}
 
 function random_int(int $min, int $max): int {}
+
+/* soundex.c */
+
+function soundex(string $string): string|false {}
+
+/* type.c */
+
+/** @param mixed $var */
+function gettype($var): string {}
+
+function settype(&$var, string $type): bool {}
+
+/** @param mixed $value */
+function intval($value, int $base = 10): int {}
+
+/** @param mixed $value */
+function floatval($value): float {}
+
+/** @param mixed $value */
+function boolval($value): bool {}
+
+/** @param mixed $value */
+function strval($value): float {}
+
+/** @param mixed $value */
+function is_null($value): bool {}
+
+/** @param mixed $value */
+function is_resource($value): bool {}
+
+/** @param mixed $value */
+function is_bool($value): bool {}
+
+/** @param mixed $value */
+function is_int($value): bool {}
+
+/** @param mixed $value */
+function is_float($value): bool {}
+
+/** @param mixed $value */
+function is_numeric($value): bool {}
+
+/** @param mixed $value */
+function is_string($value): bool {}
+
+/** @param mixed $value */
+function is_array($value): bool {}
+
+/** @param mixed $value */
+function is_object($value): bool {}
+
+/** @param mixed $value */
+function is_scalar($value): bool {}
+
+/** @param mixed $value */
+function is_callable($value, bool $syntax_only = false, &$callable_name = null) {}
+
+/** @param mixed $value */
+function is_iterable($value): bool {}
+
+/** @param mixed $value */
+function is_countable($value): bool {}
+
+/* uniqid.c */
+
+#ifdef HAVE_GETTIMEOFDAY
+function uniqid(string $prefix = "", bool $more_entropy = false): string {}
+#endif
+
+/* url.c */
+
+/** @return mixed */
+function parse_url(string $url, int $component = -1) {}
+
+function urlencode(string $string): string {}
+
+function urldecode(string $string): string {}
+
+function rawurlencode(string $string): string {}
+
+function rawurldecode(string $string): string {}
+
+/** @param resource $context */
+function get_headers(string $url, int $format = 0, $context = null): array|false {}
+
+/* user_filters.c */
+
+/** @param resource $brigade */
+function stream_bucket_make_writeable($brigade): ?object {}
+
+/** @param resource $brigade */
+function stream_bucket_prepend($brigade, object $bucket): void {}
+
+/** @param resource $brigade */
+function stream_bucket_append($brigade, object $bucket): void {}
+
+/** @param resource $stream */
+function stream_bucket_new($stream, string $buffer): object|false {}
+
+function stream_get_filters(): array {}
+
+function stream_filter_register(string $filtername, string $classname): bool {}
+
+/* uuencode.c */
+
+function convert_uuencode(string $data): string|false {}
+
+function convert_uudecode(string $data): string|false {}
+
+/* var.c */
+
+/** @param mixed $value */
+function var_dump($value, ...$value): void {}
+
+/** @param mixed $value */
+function var_export($value, bool $return = false): ?string {}
+
+/** @param mixed $value */
+function debug_zval_dump($value, ...$value): void {}
+
+/** @param mixed $value */
+function serialize($value): string {}
+
+/** @return mixed */
+function unserialize(string $value, array $options = []) {}
+
+function memory_get_usage(bool $real_usage = false): int {}
+
+function memory_get_peak_usage(bool $real_usage = false): int {}
+
+/* versioning.c */
+
+function version_compare(string $version1, string $version2, string $operator = UNKNOWN): int|bool {}
+
+/* win32/codepage.c */
+
+function sapi_windows_cp_set(int $cp): bool {}
+
+function sapi_windows_cp_get(string $kind = UNKNOWN): int {}
+
+/**
+ * @param int|string $in_codepage
+ * @param int|string $out_codepage
+ */
+function sapi_windows_cp_conv($in_codepage, $out_codepage, string $subject) {}
+
+function sapi_windows_cp_is_utf8(): bool {}
+
+/** @param callable|null $handler */
+function sapi_windows_set_ctrl_handler($handler, bool $add = true): bool {}
+
+/** @param callable|null $handler */
+function sapi_windows_generate_ctrl_event(int $event, int $pid = 0): bool {}

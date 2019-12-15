@@ -966,7 +966,7 @@ inheritance_status property_types_compatible(
 	if (status1 == INHERITANCE_ERROR || status2 == INHERITANCE_ERROR) {
 		return INHERITANCE_ERROR;
 	}
-	ZEND_ASSERT(status1 == INHERITANCE_UNRESOLVED && status2 == INHERITANCE_UNRESOLVED);
+	ZEND_ASSERT(status1 == INHERITANCE_UNRESOLVED || status2 == INHERITANCE_UNRESOLVED);
 	return INHERITANCE_UNRESOLVED;
 }
 
@@ -976,7 +976,7 @@ static void emit_incompatible_property_error(
 	zend_error_noreturn(E_COMPILE_ERROR,
 		"Type of %s::$%s must be %s (as in class %s)",
 		ZSTR_VAL(child->ce->name),
-		ZSTR_VAL(child->name),
+		zend_get_unmangled_property_name(child->name),
 		ZSTR_VAL(type_str),
 		ZSTR_VAL(parent->ce->name));
 }
